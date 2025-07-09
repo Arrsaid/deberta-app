@@ -38,6 +38,7 @@ def load_test_data():
 # Chargement
 pipeline_logreg = load_logreg_pipeline()
 results_df = load_test_data()
+results_df_sample = results_df.sample(2000, random_state=42) # Pour la performance de l'affichage
 
 # Chargement pipeline DeBERTa
 deberta = pipeline(
@@ -77,7 +78,7 @@ stop_words = [['a', 'about', 'above', 'after', 'again', 'against', 'ain', 'all',
 
 
 # ---------- TITRE PRINCIPAL ----------
-st.title("🎬 Analyse de sentiment sur les avis IMDB")
+st.title("🎬 Analyse de sentiment - IMDB")
 
 # ---------- TABS PRINCIPAUX ----------
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -93,13 +94,13 @@ with tab1:
         st.markdown("Découvrez deux analyses statistiques interactives sur le corpus, ainsi qu'un WordCloud.")
 
         # --------- 1. Distribution de la longueur des avis (histogramme interactif) ----------
-        results_df["nb_mots"] = results_df["review"].apply(lambda x: len(str(x).split()))
-        st.subheader("Distribution de la taille des avis (en nombre de mots)")
+        results_df_sample["nb_mots"] = results_df_sample["review"].apply(lambda x: len(str(x).split()))
+        st.subheader("1. Distribution de la taille des avis (en nombre de mots)")
         fig_len = px.histogram(
-            results_df,
+            results_df_sample,
             x="nb_mots",
             nbins=30,
-            color=results_df["target"].map({0: "Négatif", 1: "Positif"}),
+            color=results_df_sample["target"].map({0: "Négatif", 1: "Positif"}),
             labels={"nb_mots": "Nombre de mots", "color": "Classe"},
             barmode="overlay",
             histnorm="probability density",
@@ -113,9 +114,9 @@ with tab1:
         st.plotly_chart(fig_len, use_container_width=True)
         
         # --------- 2. Fréquence des mots les plus courants (barplot interactif) ----------
-        st.subheader("Top 20 des mots les plus fréquents")
+        st.subheader("2. Top 20 des mots les plus fréquents")
         # Nettoyage simple (tu peux améliorer le preprocessing si besoin)
-        all_words = " ".join(results_df["review"].astype(str).tolist()).lower().split()
+        all_words = " ".join(results_df_sample["review"].astype(str).tolist()).lower().split()
         all_words = [word for word in all_words if word not in stop_words[0] and word.isalpha()]
         freq_dist = Counter(all_words)
         most_common = freq_dist.most_common(20)
@@ -129,18 +130,18 @@ with tab1:
         st.plotly_chart(fig_freq, use_container_width=True)
 
         # --------- 3. WordCloud (reprend l'existant, possibilité de filtrer par classe) ----------
-        st.subheader("Nuage de mots")
+        st.subheader("3. Nuage de mots")
         choix_wc = st.selectbox(
             "Sélectionnez les avis à afficher dans le WordCloud :",
             ["Tous", "Positifs", "Négatifs"],
             key="wordcloud_stats"
         )
         if choix_wc == "Tous":
-            texte = " ".join(results_df['review'].astype(str).tolist())
+            texte = " ".join(results_df_sample['review'].astype(str).tolist())
         elif choix_wc == "Positifs":
-            texte = " ".join(results_df[results_df['target'] == 1]['review'].astype(str).tolist())
+            texte = " ".join(results_df_sample[results_df_sample['target'] == 1]['review'].astype(str).tolist())
         else:
-            texte = " ".join(results_df[results_df['target'] == 0]['review'].astype(str).tolist())
+            texte = " ".join(results_df_sample[results_df_sample['target'] == 0]['review'].astype(str).tolist())
 
         wordcloud = WordCloud(width=800, height=400, background_color='white', max_words=50).generate(texte)
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -289,7 +290,7 @@ with tab3:
         x=[0, 1], y=[0, 1], mode='lines', name='Random', line=dict(dash='dash')
     ))
     fig_roc.update_layout(
-        title="Courbe ROC",
+        title="Courbe ROC des modèles",
         xaxis_title="Taux de faux positifs",
         yaxis_title="Taux de vrais positifs"
     )
